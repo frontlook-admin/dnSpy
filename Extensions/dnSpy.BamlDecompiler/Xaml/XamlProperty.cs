@@ -25,7 +25,7 @@ using System.Xml.Linq;
 using dnlib.DotNet;
 
 namespace dnSpy.BamlDecompiler.Xaml {
-	internal class XamlProperty {
+	sealed class XamlProperty {
 		public XamlType DeclaringType { get; }
 		public string PropertyName { get; }
 
@@ -79,13 +79,11 @@ namespace dnSpy.BamlDecompiler.Xaml {
 			XName name;
 			if (!isFullName)
 				name = XmlConvert.EncodeLocalName(PropertyName);
-			else
+			else {
 				name = typeName.LocalName + "." + XmlConvert.EncodeLocalName(PropertyName);
-
-			if (parent is null || (parent.GetDefaultNamespace() != typeName.Namespace &&
-			                       parent.Name.Namespace != typeName.Namespace))
-				name = typeName.Namespace + name.LocalName;
-
+				if (parent == null || parent.GetDefaultNamespace() != typeName.Namespace)
+					name = typeName.Namespace + name.LocalName;
+			}
 			return name;
 		}
 

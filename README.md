@@ -1,6 +1,6 @@
-# dnSpy - [Latest release](https://github.com/dnSpy/dnSpy/releases)
+# dnSpyEx
 
-dnSpy is a debugger and .NET assembly editor. You can use it to edit and debug assemblies even if you don't have any source code available. Main features:
+dnSpyEx is a unofficial continuation of the [dnSpy](https://github.com/dnSpy/dnSpy) project which is a debugger and .NET assembly editor. You can use it to edit and debug assemblies even if you don't have any source code available. Main features:
 
 - Debug .NET and Unity assemblies
 - Edit .NET and Unity assemblies
@@ -14,18 +14,21 @@ See below for more features
 
 ## Binaries
 
-https://github.com/dnSpy/dnSpy/releases
+Latest stable release: https://github.com/dnSpyEx/dnSpy/releases
+
+If you like living on the edge you can use the latest "beta" builds from:
+[![](https://github.com/dnSpyEx/dnSpy/workflows/GitHub%20CI/badge.svg)](https://github.com/dnSpyEx/dnSpy/actions)
 
 ## Building
 
 ```PS
-git clone --recursive https://github.com/dnSpy/dnSpy.git
+git clone --recursive https://github.com/dnSpyEx/dnSpy.git
 cd dnSpy
 # or dotnet build
 ./build.ps1 -NoMsbuild
 ```
 
-To debug Unity games, you need this repo too: https://github.com/dnSpy/dnSpy-Unity-mono (or get the binaries from https://github.com/dnSpy/dnSpy/releases/unity)
+To debug Unity games, you need this repo too: https://github.com/dnSpyEx/dnSpy-Unity-mono (or get the binaries from https://github.com/dnSpyEx/dnSpy/releases/unity)
 
 # Debugger
 
@@ -86,7 +89,7 @@ To debug Unity games, you need this repo too: https://github.com/dnSpy/dnSpy-Uni
 - [dnlib](https://github.com/0xd4d/dnlib) (.NET metadata reader/writer which can also read obfuscated assemblies)
 - [VS MEF](https://github.com/microsoft/vs-mef) (Faster MEF equals faster startup)
 - [ClrMD](https://github.com/microsoft/clrmd) (Access to lower level debugging info not provided by the CorDebug API)
-- [Iced](https://github.com/0xd4d/iced) (x86/x64 disassembler)
+- [Iced](https://github.com/icedland/iced) (x86/x64 disassembler)
 
 # Translating dnSpy
 
@@ -94,7 +97,7 @@ To debug Unity games, you need this repo too: https://github.com/dnSpy/dnSpy-Uni
 
 # Wiki
 
-See the [Wiki](https://github.com/dnSpy/dnSpy/wiki) for build instructions and other documentation.
+See the [Wiki](https://github.com/dnSpyEx/dnSpy/wiki) for build instructions and other documentation.
 
 # License
 

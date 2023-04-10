@@ -25,7 +25,7 @@ using dnSpy.BamlDecompiler.Baml;
 using dnSpy.BamlDecompiler.Xaml;
 
 namespace dnSpy.BamlDecompiler.Handlers {
-	internal class PropertyTypeReferenceHandler : IHandler {
+	sealed class PropertyTypeReferenceHandler : IHandler {
 		public BamlRecordType Type => BamlRecordType.PropertyTypeReference;
 
 		public BamlElement Translate(XamlContext ctx, BamlNode node, BamlElement parent) {
@@ -39,10 +39,13 @@ namespace dnSpy.BamlDecompiler.Handlers {
 			var elemAttr = ctx.ResolveProperty(record.AttributeId);
 			elem.Xaml = new XElement(elemAttr.ToXName(ctx, null));
 
+			if (attr.ResolvedMember?.FullName == "System.Windows.Style.TargetType")
+				parent.Xaml.Element.AddAnnotation(new TargetTypeAnnotation(type));
+
 			elem.Xaml.Element.AddAnnotation(elemAttr);
 			parent.Xaml.Element.Add(elem.Xaml.Element);
 
-			var typeElem = new XElement(ctx.GetXamlNsName("TypeExtension", parent.Xaml));
+			var typeElem = new XElement(ctx.GetKnownNamespace("TypeExtension", XamlContext.KnownNamespace_Xaml, parent.Xaml));
 			typeElem.AddAnnotation(ctx.ResolveType(0xfd4d)); // Known type - TypeExtension
 			typeElem.Add(new XElement(ctx.GetPseudoName("Ctor"), typeName));
 			elem.Xaml.Element.Add(typeElem);

@@ -317,6 +317,10 @@ namespace dnSpy.Debugger.DotNet.CorDebug.Impl.Evaluation {
 					}
 					else {
 						if (IsPrimitiveValueType(objValue.ElementType)) {
+							// Most primitive types contain a 'm_value' field which store their value.
+							// When this field is requested, just return the primitive value.
+							if (field.Name == "m_value" && fieldDeclType == obj.Type)
+								return DbgDotNetValueResult.Create(engine.CreateDotNetValue_CorDebug(objValue, field.AppDomain, tryCreateStrongHandle: true));
 							//TODO:
 						}
 					}
@@ -825,14 +829,14 @@ namespace dnSpy.Debugger.DotNet.CorDebug.Impl.Evaluation {
 				var res = new DbgDotNetAliasInfo[count];
 				int w = 0;
 				if (exception is not null)
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.Exception, exception.Type, DbgDotNetRuntimeConstants.ExceptionId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.Exception, exception.Type, DbgDotNetRuntimeConstants.ExceptionId, null);
 				if (stowedException is not null)
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.StowedException, stowedException.Type, DbgDotNetRuntimeConstants.StowedExceptionId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.StowedException, stowedException.Type, DbgDotNetRuntimeConstants.StowedExceptionId, null);
 				if (returnValues.Length != 0) {
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValues[returnValues.Length - 1].Value.Type, DbgDotNetRuntimeConstants.LastReturnValueId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValues[returnValues.Length - 1].Value.Type, DbgDotNetRuntimeConstants.LastReturnValueId, null);
 					foreach (var returnValue in returnValues) {
 						Debug.Assert(returnValue.Id != DbgDotNetRuntimeConstants.LastReturnValueId);
-						res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValue.Value.Type, returnValue.Id, Guid.Empty, null);
+						res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValue.Value.Type, returnValue.Id, null);
 					}
 				}
 				if (w != res.Length)
@@ -1381,6 +1385,24 @@ namespace dnSpy.Debugger.DotNet.CorDebug.Impl.Evaluation {
 		bool? EqualsCore(DbgDotNetValueImpl a, DbgDotNetValueImpl b) {
 			Dispatcher.VerifyAccess();
 			return GetEquatableValue(a.Type, a.TryGetCorValue()).Equals3(GetEquatableValue(b.Type, b.TryGetCorValue()));
+		}
+
+		public DbgDotNetValue? GetObjectValueAtAddress(DbgEvaluationInfo evalInfo, ulong address) {
+			if (engine.CheckCorDebugThread())
+				return GetObjectValueAtAddress_CorDebug(evalInfo, address);
+			return engine.InvokeCorDebugThread(() => GetObjectValueAtAddress_CorDebug(evalInfo, address));
+		}
+
+		DbgDotNetValue? GetObjectValueAtAddress_CorDebug(DbgEvaluationInfo evalInfo, ulong address) {
+			engine.VerifyCorDebugThread();
+			evalInfo.CancellationToken.ThrowIfCancellationRequested();
+
+			var value = engine.GetThread(evalInfo.Frame.Thread).Process.CorProcess.GetObject(address);
+			if (value is null)
+				return null;
+
+			var appDomain = evalInfo.Frame.Module?.GetReflectionModule()?.AppDomain ?? throw new InvalidOperationException();
+			return engine.CreateDotNetValue_CorDebug(value, appDomain, true);
 		}
 
 		protected override void CloseCore(DbgDispatcher dispatcher) { }

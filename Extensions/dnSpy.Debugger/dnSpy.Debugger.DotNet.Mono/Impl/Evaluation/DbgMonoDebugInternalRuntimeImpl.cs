@@ -71,13 +71,15 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl.Evaluation {
 		}
 
 		static DbgDotNetRuntimeFeatures CalculateFeatures(VirtualMachine vm) {
-			var res = DbgDotNetRuntimeFeatures.ObjectIds | DbgDotNetRuntimeFeatures.NoDereferencePointers;
+			var res = DbgDotNetRuntimeFeatures.ObjectIds;
 			if (!vm.Version.AtLeast(2, 24))
 				res |= DbgDotNetRuntimeFeatures.NoGenericMethods;
 			// We need FuncEvalOptions.ReturnOutThis support so func-eval of Task/ObjectIdForDebugger
 			// prop updates the struct's task field
 			if (!vm.Version.AtLeast(2, 35))
 				res |= DbgDotNetRuntimeFeatures.NoAsyncStepObjectId;
+			if (!vm.Version.AtLeast(2, 46))
+				res |= DbgDotNetRuntimeFeatures.NoDereferencePointers;
 			return res;
 		}
 
@@ -377,11 +379,14 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl.Evaluation {
 				case ElementType.R8:		return (double)pv.Value == 0;
 				case ElementType.I:
 				case ElementType.U:
+				case ElementType.FnPtr:
 				case ElementType.Ptr:		return (long)pv.Value == 0;
 				case ElementType.Object:	return true;// It's a null value
 				default:					throw new InvalidOperationException();
 				}
 			}
+			if (value is PointerValue ptr)
+				return ptr.Address == 0;
 			if (value is StructMirror sm) {
 				foreach (var f in sm.Fields) {
 					if (!IsZero(f, recursionCounter + 1))
@@ -629,14 +634,14 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl.Evaluation {
 				var res = new DbgDotNetAliasInfo[count];
 				int w = 0;
 				if (exception is not null)
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.Exception, exception.Type, DbgDotNetRuntimeConstants.ExceptionId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.Exception, exception.Type, DbgDotNetRuntimeConstants.ExceptionId, null);
 				if (stowedException is not null)
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.StowedException, stowedException.Type, DbgDotNetRuntimeConstants.StowedExceptionId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.StowedException, stowedException.Type, DbgDotNetRuntimeConstants.StowedExceptionId, null);
 				if (returnValues.Length != 0) {
-					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValues[returnValues.Length - 1].Value.Type, DbgDotNetRuntimeConstants.LastReturnValueId, Guid.Empty, null);
+					res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValues[returnValues.Length - 1].Value.Type, DbgDotNetRuntimeConstants.LastReturnValueId, null);
 					foreach (var returnValue in returnValues) {
 						Debug.Assert(returnValue.Id != DbgDotNetRuntimeConstants.LastReturnValueId);
-						res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValue.Value.Type, returnValue.Id, Guid.Empty, null);
+						res[w++] = new DbgDotNetAliasInfo(DbgDotNetAliasInfoKind.ReturnValue, returnValue.Value.Type, returnValue.Id, null);
 					}
 				}
 				if (w != res.Length)
@@ -1276,6 +1281,8 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl.Evaluation {
 			result = default;
 			return false;
 		}
+
+		public DbgDotNetValue? GetObjectValueAtAddress(DbgEvaluationInfo evalInfo, ulong address) => null; // Not supported on Mono.
 
 		protected override void CloseCore(DbgDispatcher dispatcher) { }
 	}

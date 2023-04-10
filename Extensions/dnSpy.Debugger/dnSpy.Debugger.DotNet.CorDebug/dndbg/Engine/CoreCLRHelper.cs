@@ -183,7 +183,7 @@ namespace dndbg.Engine {
 			if (dbgShimState is null)
 				return null;
 
-			int hr = dbgShimState.CreateDebuggingInterfaceFromVersionEx!(CorDebugInterfaceVersion.CorDebugVersion_4_0, otherVersion, out object obj);
+			int hr = dbgShimState.CreateDebuggingInterfaceFromVersionEx!(CorDebugInterfaceVersion.CorDebugVersion_4_5, otherVersion, out object obj);
 			return obj as ICorDebug;
 		}
 
@@ -233,7 +233,7 @@ namespace dndbg.Engine {
 
 				NativeMethods.ResumeThread(hThread);
 
-				const uint WAIT_MS = 5000;
+				uint WAIT_MS = (uint)info.ConnectionTimeout.TotalMilliseconds;
 				for (;;) {
 					uint res = NativeMethods.WaitForSingleObject(startupEvent, WAIT_MS);
 					if (res == 0)
@@ -266,7 +266,7 @@ namespace dndbg.Engine {
 				var pha = (IntPtr*)pHandleArray;
 				const int index = 0;
 				var version = GetVersionStringFromModule(dbgShimState, pi.dwProcessId, psa[index], out string coreclrFilename);
-				hr = dbgShimState.CreateDebuggingInterfaceFromVersionEx!(CorDebugInterfaceVersion.CorDebugVersion_4_0, version, out object obj);
+				hr = dbgShimState.CreateDebuggingInterfaceFromVersionEx!(CorDebugInterfaceVersion.CorDebugVersion_4_5, version, out object obj);
 				var corDebug = obj as ICorDebug;
 				if (corDebug is null)
 					throw new Exception($"Could not create a ICorDebug: hr=0x{hr:X8}");

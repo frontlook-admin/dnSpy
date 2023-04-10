@@ -1,8 +1,12 @@
-param([string]$buildtfm = 'all', [switch]$NoMsbuild)
+param(
+	[ValidateSet("all","netframework","net-x86","net-x64")]
+	[string]$buildtfm = 'all',
+	[switch]$NoMsbuild
+	)
 $ErrorActionPreference = 'Stop'
 
 $netframework_tfm = 'net48'
-$net_tfm = 'net5.0-windows'
+$net_tfm = 'net6.0-windows'
 $configuration = 'Release'
 $net_baseoutput = "dnSpy\dnSpy\bin\$configuration"
 $apphostpatcher_dir = "Build\AppHostPatcher"
@@ -17,11 +21,11 @@ function Build-NetFramework {
 	$outdir = "$net_baseoutput\$netframework_tfm"
 
 	if ($NoMsbuild) {
-		dotnet build -v:m -c $configuration -f $netframework_tfm
+		dotnet build -v:m -c $configuration
 		if ($LASTEXITCODE) { exit $LASTEXITCODE }
 	}
 	else {
-		msbuild -v:m -m -restore -t:Build -p:Configuration=$configuration -p:TargetFramework=$netframework_tfm
+		msbuild -v:m -m -restore -t:Build -p:Configuration=$configuration
 		if ($LASTEXITCODE) { exit $LASTEXITCODE }
 	}
 

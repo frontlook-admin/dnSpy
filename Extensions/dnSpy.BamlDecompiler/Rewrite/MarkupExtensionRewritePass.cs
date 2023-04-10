@@ -27,12 +27,12 @@ using dnlib.DotNet;
 using dnSpy.BamlDecompiler.Xaml;
 
 namespace dnSpy.BamlDecompiler.Rewrite {
-	internal class MarkupExtensionRewritePass : IRewritePass {
+	sealed class MarkupExtensionRewritePass : IRewritePass {
 		XName key;
 		XName ctor;
 
 		public void Run(XamlContext ctx, XDocument document) {
-			key = ctx.GetXamlNsName("Key");
+			key = ctx.GetKnownNamespace("Key", XamlContext.KnownNamespace_Xaml);
 			ctor = ctx.GetPseudoName("Ctor");
 
 			bool doWork;
@@ -56,8 +56,14 @@ namespace dnSpy.BamlDecompiler.Rewrite {
 		bool RewriteElement(XamlContext ctx, XElement parent, XElement elem) {
 			var type = parent.Annotation<XamlType>();
 			var property = elem.Annotation<XamlProperty>();
-			if ((property is null || type is null) && elem.Name != key)
-				return false;
+
+			if (elem.Name != key) {
+				if (property is null || type is null)
+					return false;
+
+				if (property.ResolvedMember is PropertyDef propertyDef && propertyDef.SetMethod is null)
+					return false;
+			}
 
 			if (elem.Elements().Count() != 1 || elem.Attributes().Any(t => t.Name.Namespace != XNamespace.Xmlns))
 				return false;
@@ -78,8 +84,16 @@ namespace dnSpy.BamlDecompiler.Rewrite {
 			var attrName = elem.Name;
 			if (attrName != key)
 				attrName = property.ToXName(ctx, parent, property.IsAttachedTo(type));
-			var attr = new XAttribute(attrName, extValue);
-			parent.Add(attr);
+			if (!parent.Attributes(attrName).Any()) {
+				var attr = new XAttribute(attrName, extValue);
+				var list = new List<XAttribute>(parent.Attributes());
+				if (attrName == key)
+					list.Insert(0, attr);
+				else
+					list.Add(attr);
+				parent.RemoveAttributes();
+				parent.ReplaceAttributes(list);
+			}
 			elem.Remove();
 
 			return true;
@@ -112,12 +126,11 @@ namespace dnSpy.BamlDecompiler.Rewrite {
 		}
 
 		object InlineObject(XamlContext ctx, XNode obj) {
-			if (obj is XText)
-				return ((XText)obj).Value;
-			else if (obj is XElement)
-				return InlineExtension(ctx, (XElement)obj);
-			else
-				return null;
+			if (obj is XText text)
+				return text.Value;
+			if (obj is XElement element)
+				return InlineExtension(ctx, element);
+			return null;
 		}
 
 		object[] InlineCtor(XamlContext ctx, XElement ctor) {
@@ -144,8 +157,7 @@ namespace dnSpy.BamlDecompiler.Rewrite {
 				ext.NamedArguments[attr.Name.LocalName] = attr.Value;
 
 			foreach (var child in ctxElement.Nodes()) {
-				var elem = child as XElement;
-				if (elem is null)
+				if (child is not XElement elem)
 					return null;
 
 				if (elem.Name == ctor) {

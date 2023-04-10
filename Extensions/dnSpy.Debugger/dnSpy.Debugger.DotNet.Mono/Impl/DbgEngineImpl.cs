@@ -443,6 +443,9 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl {
 
 				hProcess_debuggee = NativeMethods.OpenProcess(NativeMethods.PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)vmPid);
 
+				dbgManager.WriteMessage(string.Format(dnSpy_Debugger_DotNet_Mono_Resources.MonoVMVersionMessage, vm.Version.VMVersion));
+				dbgManager.WriteMessage(string.Format(dnSpy_Debugger_DotNet_Mono_Resources.MonoDebuggerProtocolVersionMessage, vm.Version.MajorVersion, vm.Version.MinorVersion));
+
 				var eventThread = new Thread(MonoEventThread);
 				eventThread.IsBackground = true;
 				eventThread.Name = "MonoDebugEvent";
@@ -555,7 +558,7 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl {
 					if (start)
 						MonoDebugThread(() => OnDebuggerEvents());
 					foreach (var evt in eventSet.Events) {
-						if (evt.EventType == EventType.VMDisconnect)
+						if (evt.EventType == EventType.VMDisconnect || evt.EventType == EventType.Crash)
 							return;
 					}
 				}
@@ -910,7 +913,7 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl {
 							exFlags = DbgExceptionEventFlags.FirstChance;
 						}
 						var exObj = ee.Exception;
-						objectFactory!.CreateException(new DbgExceptionId(PredefinedExceptionCategories.DotNet, TryGetExceptionName(exObj) ?? "???"), exFlags, EvalReflectionUtils.TryGetExceptionMessage(exObj), TryGetThread(ee.Thread), TryGetModule(ee.Thread), GetMessageFlags());
+						objectFactory!.CreateException(new DbgExceptionId(PredefinedExceptionCategories.DotNet, TryGetExceptionName(exObj) ?? "???"), exFlags, EvalReflectionUtils.TryGetExceptionMessage(exObj), EvalReflectionUtils.TryGetExceptionHResult(exObj), TryGetThread(ee.Thread), TryGetModule(ee.Thread), GetMessageFlags());
 					}));
 					break;
 
@@ -927,6 +930,7 @@ namespace dnSpy.Debugger.DotNet.Mono.Impl {
 					break;
 
 				case EventType.VMDisconnect:
+				case EventType.Crash:
 					expectedSuspendPolicy = SuspendPolicy.None;
 					if (vmDeathExitCode is null && TryGetProcessExitCode(out exitCode))
 						vmDeathExitCode = exitCode;

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\..\DnSpyCommon.props" />
+  <Import Project="..\..\..\DnSpyRoslyn.props" />
 
   <PropertyGroup>
     <SignAssembly>True</SignAssembly>
@@ -12,6 +12,7 @@
   <Import Project="$(MSBuildProjectDirectory)\..\..\..\Build\MakeEverythingPublic\MakeEverythingPublic.tasks" />
 
   <ItemGroup>
+    <PackageReference Include="System.ComponentModel.Composition" Version="$(SCCompositionVersion)" Condition=" '$(IsDotNetFramework)' == 'true' " />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(RoslynVersion)" />
   </ItemGroup>
 
